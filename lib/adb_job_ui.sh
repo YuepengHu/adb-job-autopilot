@@ -206,12 +206,18 @@ guard_page() {
 
 tap_communication_button() {
   [[ "${DRY_RUN:-0}" == "1" ]] && return 1
-  local attempt coords x y
+  local attempt coords x y ocr_text
   for ((attempt = 1; attempt <= BUTTON_FIND_ATTEMPTS; attempt++)); do
     dump_ui || true
     coords="$(find_text_node_center "${COMMUNICATION_SKIP_TEXT_REGEX}" "${BUTTON_MIN_Y}" | head -1)"
     if [[ -n "${coords}" ]]; then
       echo "already connected button detected; returning without tapping communication."
+      COMMUNICATION_RESULT="already_connected"
+      return 0
+    fi
+
+    if xml_contains_regex "(text|content-desc)=\"[^\"]*(${COMMUNICATION_SKIP_TEXT_REGEX})"; then
+      echo "already connected text detected; returning without tapping communication."
       COMMUNICATION_RESULT="already_connected"
       return 0
     fi
@@ -225,6 +231,13 @@ tap_communication_button() {
     fi
     pause_for "${BUTTON_FIND_DELAY}"
   done
+
+  ocr_text="$(ocr_screen_text || true)"
+  if [[ "${ocr_text}" =~ ${COMMUNICATION_SKIP_TEXT_REGEX} ]]; then
+    echo "already connected text detected by OCR; returning without tapping communication."
+    COMMUNICATION_RESULT="already_connected"
+    return 0
+  fi
   return 1
 }
 

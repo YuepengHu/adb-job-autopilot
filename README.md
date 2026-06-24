@@ -79,8 +79,8 @@ Each iteration does this:
 每一轮执行：
 
 1. Tap the first visible job card / 点击第一个可见职位。
-2. Tap the new communication button, or return directly if it is already `继续沟通/继续聊` / 点击新的沟通按钮；如果是 `继续沟通/继续聊`，说明已投递，直接返回。
-3. Tap the top-left back point twice / 点击左上角返回两次。
+2. Tap the new communication button, or treat `继续沟通/继续聊` as already applied / 点击新的沟通按钮；如果是 `继续沟通/继续聊`，说明已投递。
+3. Return twice after a new communication, or once for an already-applied job / 新沟通后返回两次；已投递岗位只返回一次。
 4. Advance by one visible job using short slow swipes and UI verification / 使用短慢滑动和 UI 校验推进一个可见职位。
 
 ## Configuration / 配置

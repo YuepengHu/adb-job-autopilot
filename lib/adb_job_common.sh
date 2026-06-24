@@ -138,18 +138,21 @@ run_apply_loop() {
       tap_at "communication button" "${BUTTON_X}" "${BUTTON_Y}"
       COMMUNICATION_RESULT="tapped"
     fi
+    local return_backs=2
     if [[ "${COMMUNICATION_RESULT}" == "already_connected" ]]; then
       emit_state "communicate" "already connected, skip"
+      return_backs=1
       pause_for "${RETURN_DELAY}"
     else
       emit_state "communicate" "communication tapped"
       pause_for "${POST_BUTTON_DELAY}"
     fi
     emit_state "return_list" "back to list"
-    tap_at "back 1" "${BACK_X}" "${BACK_Y}"
-    pause_for "${RETURN_DELAY}"
-    tap_at "back 2" "${BACK_X}" "${BACK_Y}"
-    pause_for "${RETURN_DELAY}"
+    local back_index
+    for ((back_index = 1; back_index <= return_backs; back_index++)); do
+      tap_at "back ${back_index}/${return_backs}" "${BACK_X}" "${BACK_Y}"
+      pause_for "${RETURN_DELAY}"
+    done
     emit_state "verify_return" "verify returned list"
     guard_page || { emit_state "failed" "return guard failed"; exit 1; }
     emit_state "scroll" "advance one job"

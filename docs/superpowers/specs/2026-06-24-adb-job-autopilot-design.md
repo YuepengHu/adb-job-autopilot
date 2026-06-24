@@ -51,9 +51,9 @@ For each loop iteration / 每一轮循环：
 2. Read visible job nodes from the UI tree / 从 UI 树读取当前可见职位节点。
 3. Tap the target visible job card / 点击目标可见职位卡片。
 4. Wait for the detail page to load / 等待职位详情页加载。
-5. Detect the app-specific communication button by text; tap only new communication actions and skip already-connected actions / 通过文字识别对应 App 的沟通按钮；只点击新的沟通动作，遇到已沟通动作则跳过。
-6. Wait for the chat/detail transition / 等待进入聊天页或完成页面跳转。
-7. Tap the top-left back coordinate twice / 点击左上角返回坐标两次。
+5. Detect the app-specific communication button by text; tap only new communication actions and treat `继续沟通/继续聊` as already applied / 通过文字识别对应 App 的沟通按钮；只点击新的沟通动作，遇到 `继续沟通/继续聊` 则视为已投递。
+6. Wait for the post-button transition when a new communication was tapped / 如果点击了新沟通，则等待点击后的页面切换。
+7. Tap the top-left back coordinate twice after new communication, or once for an already-applied job / 新沟通后点击左上角返回两次；已投递岗位只返回一次。
 8. Verify the list page again / 再次校验是否回到职位列表。
 9. Advance by one job card using a slow, verified scroll / 使用慢速且可验证的滑动推进一个职位。
 10. Pause before the next iteration / 暂停一小段时间后进入下一轮。
