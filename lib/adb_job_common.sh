@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+ADB_ARGS=()
+
 require_adb() {
   if ! command -v adb >/dev/null 2>&1; then
     echo "adb is not available in PATH. Install Android platform-tools first." >&2
@@ -43,7 +45,11 @@ select_device() {
 }
 
 adb_run() {
-  adb "${ADB_ARGS[@]}" "$@"
+  if ((${#ADB_ARGS[@]} > 0)); then
+    adb "${ADB_ARGS[@]}" "$@"
+  else
+    adb "$@"
+  fi
 }
 
 tap_at() {
@@ -76,6 +82,7 @@ print_config() {
   echo "RUNS=${RUNS} DELAY=${DELAY} OPEN_DELAY=${OPEN_DELAY} POST_BUTTON_DELAY=${POST_BUTTON_DELAY} RETURN_DELAY=${RETURN_DELAY}"
   echo "JOB=${JOB_X},${JOB_Y} BUTTON=${BUTTON_X},${BUTTON_Y} BACK=${BACK_X},${BACK_Y}"
   echo "SWIPE=${SWIPE_X},${SWIPE_START_Y}->${SWIPE_X},${SWIPE_END_Y} ${SWIPE_MS}ms"
+  echo "SMART_TAP=${SMART_TAP} SMART_SCROLL=${SMART_SCROLL} PAGE_GUARD=${PAGE_GUARD} OCR_FALLBACK=${OCR_FALLBACK}"
   echo "DRY_RUN=${DRY_RUN:-0} WAKE_SCREEN=${WAKE_SCREEN} KEEP_AWAKE=${KEEP_AWAKE}"
 }
 
@@ -103,15 +110,29 @@ run_apply_loop() {
   local index
   for ((index = 1; index <= RUNS; index++)); do
     echo "--- ${app_name} iteration ${index}/${RUNS} ---"
-    tap_at "job card" "${JOB_X}" "${JOB_Y}"
+    guard_page || exit 1
+    if [[ "${SMART_TAP}" == "1" ]] && declare -F tap_visible_job >/dev/null && tap_visible_job; then
+      :
+    else
+      tap_at "job card" "${JOB_X}" "${JOB_Y}"
+    fi
     pause_for "${OPEN_DELAY}"
-    tap_at "communication button" "${BUTTON_X}" "${BUTTON_Y}"
+    if [[ "${SMART_TAP}" == "1" ]] && declare -F tap_communication_button >/dev/null && tap_communication_button; then
+      :
+    else
+      tap_at "communication button" "${BUTTON_X}" "${BUTTON_Y}"
+    fi
     pause_for "${POST_BUTTON_DELAY}"
     tap_at "back 1" "${BACK_X}" "${BACK_Y}"
     pause_for "${RETURN_DELAY}"
     tap_at "back 2" "${BACK_X}" "${BACK_Y}"
     pause_for "${RETURN_DELAY}"
-    swipe_list
+    guard_page || exit 1
+    if declare -F advance_one_job >/dev/null && advance_one_job; then
+      :
+    else
+      swipe_list
+    fi
     pause_for "${DELAY}"
   done
 }
