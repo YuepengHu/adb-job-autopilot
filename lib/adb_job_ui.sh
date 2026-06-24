@@ -209,10 +209,18 @@ tap_communication_button() {
   local attempt coords x y
   for ((attempt = 1; attempt <= BUTTON_FIND_ATTEMPTS; attempt++)); do
     dump_ui || true
-    coords="$(find_text_node_center "${COMMUNICATION_TEXT_REGEX}" "${BUTTON_MIN_Y}" | head -1)"
+    coords="$(find_text_node_center "${COMMUNICATION_SKIP_TEXT_REGEX}" "${BUTTON_MIN_Y}" | head -1)"
+    if [[ -n "${coords}" ]]; then
+      echo "already connected button detected; returning without tapping communication."
+      COMMUNICATION_RESULT="already_connected"
+      return 0
+    fi
+
+    coords="$(find_text_node_center "${COMMUNICATION_APPLY_TEXT_REGEX}" "${BUTTON_MIN_Y}" | head -1)"
     if [[ -n "${coords}" ]]; then
       read -r x y <<<"${coords}"
       tap_at "communication button" "${x}" "${y}"
+      COMMUNICATION_RESULT="tapped"
       return 0
     fi
     pause_for "${BUTTON_FIND_DELAY}"
@@ -245,6 +253,9 @@ advance_one_job() {
     after_jobs="$(job_key_list)"
     after_first="$(printf '%s\n' "${after_jobs}" | sed -n '1p')"
     [[ -n "${after_first}" ]] || continue
+    if ((attempt < SMART_SCROLL_MIN_STEPS)); then
+      continue
+    fi
     if [[ "${after_first}" != "${before_first}" ]]; then
       echo "advanced from '${before_first}' to '${after_first}'"
       if [[ -n "${before_second}" && "${after_first}" != "${before_second}" ]]; then

@@ -77,7 +77,7 @@ Each iteration does this:
 每一轮执行：
 
 1. Tap the first visible job card / 点击第一个可见职位。
-2. Tap the communication button / 点击沟通按钮。
+2. Tap the new communication button, or return directly if it is already `继续沟通/继续聊` / 点击新的沟通按钮；如果是 `继续沟通/继续聊`，说明已投递，直接返回。
 3. Tap the top-left back point twice / 点击左上角返回两次。
 4. Advance by one visible job using short slow swipes and UI verification / 使用短慢滑动和 UI 校验推进一个可见职位。
 
@@ -109,6 +109,7 @@ All coordinates and timings can be overridden with environment variables.
 | `SWIPE_MS` | `900` | Swipe duration in ms / 滑动耗时毫秒 |
 | `STEP_SWIPE_*` | App-specific | Small verified swipe settings / 可验证短滑配置 |
 | `SMART_SCROLL_MAX_STEPS` | `5` | Max small swipes for one job advancement / 单职位推进最多短滑次数 |
+| `SMART_SCROLL_MIN_STEPS` | `2` | Minimum small swipes before accepting advancement / 接受推进成功前至少短滑次数 |
 | `DRY_RUN` | `0` | Print actions and skip device validation when `1` / 为 `1` 时只打印动作并跳过设备检查 |
 
 Examples / 示例：
@@ -132,8 +133,8 @@ These fallback defaults target the connected `1260x2772` phone. With `SMART_TAP=
 
 | Script | Job tap | Communication tap | Back tap | Swipe |
 | --- | --- | --- | --- | --- |
-| `boss_apply.sh` | `630,690` | `1010,2585` | `70,220` | `630,1650 -> 630,1420` |
-| `liepin_apply.sh` | `630,1190` | `820,2585` | `70,220` | `630,1700 -> 630,1450` |
+| `boss_apply.sh` | `630,690` | `1010,2585` | `70,220` | `630,1750 -> 630,1420` |
+| `liepin_apply.sh` | `630,1190` | `820,2585` | `70,220` | `630,1800 -> 630,1450` |
 
 ## OCR / OCR
 

@@ -51,7 +51,7 @@ For each loop iteration / 每一轮循环：
 2. Read visible job nodes from the UI tree / 从 UI 树读取当前可见职位节点。
 3. Tap the target visible job card / 点击目标可见职位卡片。
 4. Wait for the detail page to load / 等待职位详情页加载。
-5. Detect and tap the app-specific communication button by text or configured fallback coordinate / 通过文字识别或兜底坐标点击对应 App 的沟通按钮。
+5. Detect the app-specific communication button by text; tap only new communication actions and skip already-connected actions / 通过文字识别对应 App 的沟通按钮；只点击新的沟通动作，遇到已沟通动作则跳过。
 6. Wait for the chat/detail transition / 等待进入聊天页或完成页面跳转。
 7. Tap the top-left back coordinate twice / 点击左上角返回坐标两次。
 8. Verify the list page again / 再次校验是否回到职位列表。
@@ -106,6 +106,7 @@ Both scripts expose these environment variables.
 - `PAGE_GUARD`: enable page and interruption checks, default `1` / 启用页面和中断检查，默认 `1`。
 - `OCR_FALLBACK`: enable screenshot OCR fallback, default `1` / 启用截图 OCR 兜底，默认 `1`。
 - `MENU_RUNS`: default run count used by the menu bar app, default `5` / 菜单栏 App 使用的默认轮数，默认 `5`。
+- `SMART_SCROLL_MIN_STEPS`: minimum small swipes before accepting one-job advancement, default `2` / 接受单职位推进成功前至少短滑次数，默认 `2`。
 
 Coordinate fallback remains available when UI detection fails.
 

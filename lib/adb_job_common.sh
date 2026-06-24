@@ -110,6 +110,7 @@ run_apply_loop() {
   local index
   for ((index = 1; index <= RUNS; index++)); do
     echo "--- ${app_name} iteration ${index}/${RUNS} ---"
+    COMMUNICATION_RESULT=""
     guard_page || exit 1
     if [[ "${SMART_TAP}" == "1" ]] && declare -F tap_visible_job >/dev/null && tap_visible_job; then
       :
@@ -121,8 +122,13 @@ run_apply_loop() {
       :
     else
       tap_at "communication button" "${BUTTON_X}" "${BUTTON_Y}"
+      COMMUNICATION_RESULT="tapped"
     fi
-    pause_for "${POST_BUTTON_DELAY}"
+    if [[ "${COMMUNICATION_RESULT}" == "already_connected" ]]; then
+      pause_for "${RETURN_DELAY}"
+    else
+      pause_for "${POST_BUTTON_DELAY}"
+    fi
     tap_at "back 1" "${BACK_X}" "${BACK_Y}"
     pause_for "${RETURN_DELAY}"
     tap_at "back 2" "${BACK_X}" "${BACK_Y}"
