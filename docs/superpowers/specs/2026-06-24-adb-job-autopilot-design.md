@@ -84,8 +84,34 @@ macOS 菜单栏启动器是原生 Swift AppKit 应用，会创建一个名为 `�
 - The menu exposes `Start BOSS` and `Start Liepin` actions / 菜单提供启动 BOSS 和启动猎聘的操作。
 - The menu exposes stop, open logs, and quit actions / 菜单提供停止、打开日志和退出操作。
 - The item title changes while a script is running / 脚本运行时状态栏标题会变化。
+- A `Status` submenu shows the current state-machine step with text markers / `Status` 子菜单用文本标记展示当前状态机步骤。
+- A flow panel can be opened from the menu to show the same state as a graphical step diagram / 菜单可打开流程面板，用图形化步骤图展示同一状态。
 - Logs are written under `logs/` / 日志写入 `logs/`。
 - The default run count is configurable with `MENU_RUNS`, default `5`, and can be changed from the menu / 默认轮数可通过 `MENU_RUNS` 配置，默认 `5`，也可以在菜单中修改。
+
+## State Machine Visualization / 状态机可视化
+
+Scripts emit structured status events while running. The menu bar app parses these events in real time and updates both the menu and flow panel.
+
+脚本运行时输出结构化状态事件。菜单栏 App 实时解析这些事件，并同步更新菜单和流程面板。
+
+Default states / 默认状态：
+
+1. `prepare`: prepare device / 准备设备。
+2. `guard`: verify page / 校验页面。
+3. `open_job`: open job detail / 打开职位。
+4. `detect_button`: detect communication button / 识别沟通按钮。
+5. `communicate`: tap new communication or skip existing conversation / 新沟通或跳过已沟通。
+6. `return_list`: return to the list / 返回列表。
+7. `scroll`: advance to the next job / 推进职位。
+8. `complete`: finish current iteration or run / 完成当前轮或整次运行。
+
+Menu markers / 菜单标记：
+
+- `✓`: completed / 已完成。
+- `▶`: current / 当前。
+- `○`: pending / 未开始。
+- `!`: failed or interrupted / 失败或中断。
 
 ## Configuration / 配置
 
@@ -130,4 +156,4 @@ Coordinate fallback remains available when UI detection fails.
 4. Start with BOSS on a job list page and execute `RUNS=1 ./boss_apply.sh` / 在 BOSS 职位列表页执行 `RUNS=1 ./boss_apply.sh`。
 5. Confirm one job was opened, communication was tapped, the app returned to the list, and the list advanced by one job / 确认脚本打开了一个职位、点击了沟通、返回列表并推进一个职位。
 6. Repeat with Liepin using `RUNS=1 ./liepin_apply.sh` / 在猎聘中用 `RUNS=1 ./liepin_apply.sh` 重复验证。
-7. Verify the menu bar app opens one `投递` menu, can configure the run count, and can start BOSS/Liepin scripts / 验证菜单栏 App 只显示一个 `投递` 菜单，可以配置岗位数量，并能启动 BOSS/猎聘脚本。
+7. Verify the menu bar app opens one `投递` menu, can configure the run count, can start BOSS/Liepin scripts, and updates status visualization from dry-run state events / 验证菜单栏 App 只显示一个 `投递` 菜单，可以配置岗位数量，能启动 BOSS/猎聘脚本，并能通过 dry-run 状态事件更新可视化状态。

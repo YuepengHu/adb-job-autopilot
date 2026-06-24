@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 
 ADB_ARGS=()
+CURRENT_ITERATION=0
+STATE_APP_NAME=""
+
+emit_state() {
+  local step="$1"
+  local message="${2:-}"
+  printf 'STATE|%s|%s|%s|%s|%s\n' "${STATE_APP_NAME}" "${CURRENT_ITERATION}" "${RUNS}" "${step}" "${message}"
+}
 
 require_adb() {
   if ! command -v adb >/dev/null 2>&1; then
@@ -102,6 +110,8 @@ prepare_screen() {
 
 run_apply_loop() {
   local app_name="$1"
+  STATE_APP_NAME="${app_name}"
+  emit_state "prepare" "select device"
   select_device
   prepare_screen
   print_config "${app_name}"
@@ -109,15 +119,19 @@ run_apply_loop() {
 
   local index
   for ((index = 1; index <= RUNS; index++)); do
+    CURRENT_ITERATION="${index}"
     echo "--- ${app_name} iteration ${index}/${RUNS} ---"
     COMMUNICATION_RESULT=""
-    guard_page || exit 1
+    emit_state "guard" "verify list page"
+    guard_page || { emit_state "failed" "page guard failed"; exit 1; }
+    emit_state "open_job" "open visible job"
     if [[ "${SMART_TAP}" == "1" ]] && declare -F tap_visible_job >/dev/null && tap_visible_job; then
       :
     else
       tap_at "job card" "${JOB_X}" "${JOB_Y}"
     fi
     pause_for "${OPEN_DELAY}"
+    emit_state "detect_button" "find communication button"
     if [[ "${SMART_TAP}" == "1" ]] && declare -F tap_communication_button >/dev/null && tap_communication_button; then
       :
     else
@@ -125,20 +139,27 @@ run_apply_loop() {
       COMMUNICATION_RESULT="tapped"
     fi
     if [[ "${COMMUNICATION_RESULT}" == "already_connected" ]]; then
+      emit_state "communicate" "already connected, skip"
       pause_for "${RETURN_DELAY}"
     else
+      emit_state "communicate" "communication tapped"
       pause_for "${POST_BUTTON_DELAY}"
     fi
+    emit_state "return_list" "back to list"
     tap_at "back 1" "${BACK_X}" "${BACK_Y}"
     pause_for "${RETURN_DELAY}"
     tap_at "back 2" "${BACK_X}" "${BACK_Y}"
     pause_for "${RETURN_DELAY}"
-    guard_page || exit 1
+    emit_state "guard" "verify returned list"
+    guard_page || { emit_state "failed" "return guard failed"; exit 1; }
+    emit_state "scroll" "advance one job"
     if declare -F advance_one_job >/dev/null && advance_one_job; then
       :
     else
       swipe_list
     fi
+    emit_state "complete" "iteration ${index} complete"
     pause_for "${DELAY}"
   done
+  emit_state "complete" "run complete"
 }

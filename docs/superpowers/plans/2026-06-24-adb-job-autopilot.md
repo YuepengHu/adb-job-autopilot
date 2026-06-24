@@ -22,9 +22,11 @@
 - [ ] Task 7 — Add native Swift menu bar app with one `投递` status item, run-count configuration, and BOSS/Liepin actions.
 - [ ] Task 8 — Add build script for compiling the menu bar app bundle and placing runtime logs under `logs/`.
 - [ ] Task 9 — Document how to launch, stop, and configure the menu bar app.
+- [ ] Task 10 — Add script state events and parse them in the menu bar app.
+- [ ] Task 11 — Add a status-machine submenu and graphical flow panel.
 
 ### Phase 4: Verification
 
-- [ ] Task 10 — Run shell syntax checks and Swift compilation.
-- [ ] Task 11 — Verify BOSS and Liepin dry-run flows with guards enabled.
-- [ ] Task 12 — Verify menu bar app builds, launches as one status item, and exposes run-count and BOSS/Liepin actions.
+- [ ] Task 12 — Run shell syntax checks and Swift compilation.
+- [ ] Task 13 — Verify BOSS and Liepin dry-run flows emit state events.
+- [ ] Task 14 — Verify menu bar app builds, launches as one status item, and exposes status visualization.

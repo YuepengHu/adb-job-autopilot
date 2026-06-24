@@ -59,6 +59,8 @@ It creates one menu bar item: `投递`.
 - Choose `Start BOSS` to start `boss_apply.sh` / 选择 `Start BOSS` 启动 `boss_apply.sh`。
 - Choose `Start Liepin` to start `liepin_apply.sh` / 选择 `Start Liepin` 启动 `liepin_apply.sh`。
 - Use `Stop Running Script` to stop a running script / 使用 `Stop Running Script` 停止正在运行的脚本。
+- Open `Status / 当前流程` to view the current state-machine step / 打开 `Status / 当前流程` 查看当前状态机步骤。
+- Choose `Show Flow Panel / 显示流程面板` to view a graphical flow diagram / 选择 `Show Flow Panel / 显示流程面板` 查看图形化流程图。
 - Use `Quit` to quit the menu bar app / 使用 `Quit` 退出菜单栏 App。
 - Logs are written under `logs/` / 日志写入 `logs/`。
 
