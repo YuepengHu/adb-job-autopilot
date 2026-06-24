@@ -5,18 +5,26 @@
 
 ## Tasks
 
-### Phase 1: Foundation
+### Phase 1: UI Detection Foundation
 
-- [ ] Task 1 — Create shared shell helpers for ADB device validation, logging, tapping, swiping, and delays.
-- [ ] Task 2 — Add project README with bilingual usage, configuration, and calibration guidance.
+- [ ] Task 1 — Add shared helpers for Android UI dump capture, foreground package detection, XML text search, and bounds parsing.
+- [ ] Task 2 — Add optional OCR fallback helpers that use `tesseract` when available and degrade safely when unavailable.
+- [ ] Task 3 — Add page guard helpers that detect unexpected packages, ad/error/close/skip text, and unsafe pages.
 
-### Phase 2: App Scripts
+### Phase 2: One-Job Advancement
 
-- [ ] Task 3 — Create `boss_apply.sh` with BOSS default coordinates and the approved loop flow. Depends on Task 1.
-- [ ] Task 4 — Create `liepin_apply.sh` with Liepin default coordinates and the approved loop flow. Depends on Task 1.
+- [ ] Task 4 — Update BOSS script defaults and flow to use guarded job-card tapping and slower one-card advancement.
+- [ ] Task 5 — Update Liepin script defaults and flow to use guarded job-card tapping and slower one-card advancement.
+- [ ] Task 6 — Keep coordinate fallback available through environment variables for cases where UI detection fails.
 
-### Phase 3: Verification
+### Phase 3: Menu Bar Launcher
 
-- [ ] Task 5 — Run shell syntax checks for all scripts.
-- [ ] Task 6 — Verify the connected ADB device and run a single BOSS iteration when the phone is on the BOSS job list page.
-- [ ] Task 7 — Leave Liepin ready for single-iteration verification once the phone is on the Liepin job list page.
+- [ ] Task 7 — Add native Swift menu bar app with two clickable status items: `BOSS` and `猎聘`.
+- [ ] Task 8 — Add build script for compiling the menu bar app bundle and placing runtime logs under `logs/`.
+- [ ] Task 9 — Document how to launch, stop, and configure the menu bar app.
+
+### Phase 4: Verification
+
+- [ ] Task 10 — Run shell syntax checks and Swift compilation.
+- [ ] Task 11 — Verify BOSS and Liepin dry-run flows with guards enabled.
+- [ ] Task 12 — Verify menu bar app launches both scripts in `DRY_RUN=1` mode before any real menu-triggered run.
