@@ -22,7 +22,7 @@ final class FlowDiagramView: NSView {
     init(steps: [FlowStep], snapshot: FlowSnapshot) {
         self.steps = steps
         self.snapshot = snapshot
-        super.init(frame: NSRect(x: 0, y: 0, width: 760, height: 300))
+        super.init(frame: NSRect(x: 0, y: 0, width: 700, height: 390))
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -35,17 +35,18 @@ final class FlowDiagramView: NSView {
         let currentIndex = steps.firstIndex { $0.key == snapshot.currentStep } ?? -1
         drawText("\(displayAppName())  \(snapshot.iteration)/\(snapshot.total)  \(snapshot.message)", in: NSRect(x: 24, y: 18, width: bounds.width - 48, height: 24), size: 15, color: .labelColor, bold: true)
 
-        let boxWidth: CGFloat = 160
+        let columns = 3
+        let boxWidth: CGFloat = 180
         let boxHeight: CGFloat = 58
-        let xGap: CGFloat = 24
+        let xGap: CGFloat = 35
         let yGap: CGFloat = 54
         let startX: CGFloat = 24
         let startY: CGFloat = 68
 
         for (index, step) in steps.enumerated() {
             let rect = NSRect(
-                x: startX + CGFloat(index % 4) * (boxWidth + xGap),
-                y: startY + CGFloat(index / 4) * (boxHeight + yGap),
+                x: startX + CGFloat(index % columns) * (boxWidth + xGap),
+                y: startY + CGFloat(index / columns) * (boxHeight + yGap),
                 width: boxWidth,
                 height: boxHeight
             )
@@ -54,7 +55,7 @@ final class FlowDiagramView: NSView {
             NSColor.separatorColor.setStroke()
             NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8).stroke()
             drawText("\(markerForStep(index: index, currentIndex: currentIndex)) \(step.title)", in: rect.insetBy(dx: 10, dy: 18), size: 13, color: .labelColor, bold: index == currentIndex)
-            drawArrowIfNeeded(index: index, rect: rect, xGap: xGap)
+            drawArrowIfNeeded(index: index, rect: rect, xGap: xGap, columns: columns)
         }
     }
 
@@ -79,8 +80,8 @@ final class FlowDiagramView: NSView {
         return NSColor.controlBackgroundColor
     }
 
-    private func drawArrowIfNeeded(index: Int, rect: NSRect, xGap: CGFloat) {
-        if index == steps.count - 1 || index % 4 == 3 { return }
+    private func drawArrowIfNeeded(index: Int, rect: NSRect, xGap: CGFloat, columns: Int) {
+        if index == steps.count - 1 || index % columns == columns - 1 { return }
         let start = NSPoint(x: rect.maxX + 5, y: rect.midY)
         let end = NSPoint(x: rect.maxX + xGap - 5, y: rect.midY)
         let path = NSBezierPath()
@@ -113,11 +114,12 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
     private let runCountOptions = [1, 3, 5, 10, 20]
     private let steps = [
         FlowStep(key: "prepare", title: "准备设备"),
-        FlowStep(key: "guard", title: "校验页面"),
+        FlowStep(key: "verify_list", title: "校验列表"),
         FlowStep(key: "open_job", title: "打开职位"),
         FlowStep(key: "detect_button", title: "识别按钮"),
         FlowStep(key: "communicate", title: "沟通/跳过"),
         FlowStep(key: "return_list", title: "返回列表"),
+        FlowStep(key: "verify_return", title: "确认返回"),
         FlowStep(key: "scroll", title: "推进职位"),
         FlowStep(key: "complete", title: "完成")
     ]
@@ -273,7 +275,7 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
 
     @objc private func showFlowPanel() {
         if flowPanel == nil {
-            let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 760, height: 300), styleMask: [.titled, .closable, .utilityWindow], backing: .buffered, defer: false)
+            let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 700, height: 390), styleMask: [.titled, .closable, .utilityWindow], backing: .buffered, defer: false)
             panel.title = "投递流程 / Apply Flow"
             panel.isReleasedWhenClosed = false
             let view = FlowDiagramView(steps: steps, snapshot: snapshot)
@@ -382,9 +384,14 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
         snapshot.appName = String(parts[1])
         snapshot.iteration = Int(parts[2]) ?? snapshot.iteration
         snapshot.total = Int(parts[3]) ?? snapshot.total
-        snapshot.currentStep = String(parts[4])
+        let step = String(parts[4])
         snapshot.message = String(parts[5])
-        snapshot.failed = snapshot.currentStep == "failed"
+        if step == "failed" {
+            snapshot.failed = true
+        } else {
+            snapshot.currentStep = step
+            snapshot.failed = false
+        }
         snapshot.running = process != nil
         statusItem.button?.title = "\(shortAppName(snapshot.appName))... \(snapshot.iteration)/\(snapshot.total)"
         refreshUI()

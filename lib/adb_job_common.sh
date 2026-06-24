@@ -122,7 +122,7 @@ run_apply_loop() {
     CURRENT_ITERATION="${index}"
     echo "--- ${app_name} iteration ${index}/${RUNS} ---"
     COMMUNICATION_RESULT=""
-    emit_state "guard" "verify list page"
+    emit_state "verify_list" "verify list page"
     guard_page || { emit_state "failed" "page guard failed"; exit 1; }
     emit_state "open_job" "open visible job"
     if [[ "${SMART_TAP}" == "1" ]] && declare -F tap_visible_job >/dev/null && tap_visible_job; then
@@ -150,7 +150,7 @@ run_apply_loop() {
     pause_for "${RETURN_DELAY}"
     tap_at "back 2" "${BACK_X}" "${BACK_Y}"
     pause_for "${RETURN_DELAY}"
-    emit_state "guard" "verify returned list"
+    emit_state "verify_return" "verify returned list"
     guard_page || { emit_state "failed" "return guard failed"; exit 1; }
     emit_state "scroll" "advance one job"
     if declare -F advance_one_job >/dev/null && advance_one_job; then

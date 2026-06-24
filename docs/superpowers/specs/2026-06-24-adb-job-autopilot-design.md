@@ -98,13 +98,14 @@ Scripts emit structured status events while running. The menu bar app parses the
 Default states / 默认状态：
 
 1. `prepare`: prepare device / 准备设备。
-2. `guard`: verify page / 校验页面。
+2. `verify_list`: verify the list before opening a job / 打开职位前校验列表。
 3. `open_job`: open job detail / 打开职位。
 4. `detect_button`: detect communication button / 识别沟通按钮。
 5. `communicate`: tap new communication or skip existing conversation / 新沟通或跳过已沟通。
 6. `return_list`: return to the list / 返回列表。
-7. `scroll`: advance to the next job / 推进职位。
-8. `complete`: finish current iteration or run / 完成当前轮或整次运行。
+7. `verify_return`: confirm the script returned to the list / 确认已返回列表。
+8. `scroll`: advance to the next job / 推进职位。
+9. `complete`: finish current iteration or run / 完成当前轮或整次运行。
 
 Menu markers / 菜单标记：
 
