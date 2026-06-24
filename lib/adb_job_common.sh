@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+
+require_adb() {
+  if ! command -v adb >/dev/null 2>&1; then
+    echo "adb is not available in PATH. Install Android platform-tools first." >&2
+    exit 1
+  fi
+}
+
+select_device() {
+  require_adb
+
+  if [[ "${DRY_RUN:-0}" == "1" ]]; then
+    echo "DRY_RUN=1: skipping adb device validation."
+    ADB_ARGS=()
+    return
+  fi
+
+  if [[ -n "${ADB_SERIAL:-}" ]]; then
+    local state
+    state="$(adb devices | awk -v serial="${ADB_SERIAL}" '$1 == serial { print $2 }')"
+    if [[ "${state}" != "device" ]]; then
+      echo "ADB_SERIAL=${ADB_SERIAL} is not connected as an authorized device." >&2
+      adb devices -l >&2
+      exit 1
+    fi
+    ADB_ARGS=(-s "${ADB_SERIAL}")
+    return
+  fi
+
+  local device_count
+  device_count="$(adb devices | awk 'NR > 1 && $2 == "device" { count++ } END { print count + 0 }')"
+  if [[ "${device_count}" != "1" ]]; then
+    echo "Expected exactly one authorized adb device, found ${device_count}." >&2
+    adb devices -l >&2
+    echo "Set ADB_SERIAL=<serial> if multiple devices are connected." >&2
+    exit 1
+  fi
+
+  local serial
+  serial="$(adb devices | awk 'NR > 1 && $2 == "device" { print $1; exit }')"
+  ADB_ARGS=(-s "${serial}")
+}
+
+adb_run() {
+  adb "${ADB_ARGS[@]}" "$@"
+}
+
+tap_at() {
+  local label="$1"
+  local x="$2"
+  local y="$3"
+  echo "tap ${label}: ${x},${y}"
+  if [[ "${DRY_RUN:-0}" != "1" ]]; then
+    adb_run shell input tap "${x}" "${y}"
+  fi
+}
+
+swipe_list() {
+  echo "swipe list: ${SWIPE_X},${SWIPE_START_Y} -> ${SWIPE_X},${SWIPE_END_Y} (${SWIPE_MS}ms)"
+  if [[ "${DRY_RUN:-0}" != "1" ]]; then
+    adb_run shell input swipe "${SWIPE_X}" "${SWIPE_START_Y}" "${SWIPE_X}" "${SWIPE_END_Y}" "${SWIPE_MS}"
+  fi
+}
+
+pause_for() {
+  local seconds="$1"
+  if [[ "${seconds}" != "0" ]]; then
+    sleep "${seconds}"
+  fi
+}
+
+print_config() {
+  local app_name="$1"
+  echo "App: ${app_name}"
+  echo "RUNS=${RUNS} DELAY=${DELAY} OPEN_DELAY=${OPEN_DELAY} POST_BUTTON_DELAY=${POST_BUTTON_DELAY} RETURN_DELAY=${RETURN_DELAY}"
+  echo "JOB=${JOB_X},${JOB_Y} BUTTON=${BUTTON_X},${BUTTON_Y} BACK=${BACK_X},${BACK_Y}"
+  echo "SWIPE=${SWIPE_X},${SWIPE_START_Y}->${SWIPE_X},${SWIPE_END_Y} ${SWIPE_MS}ms"
+  echo "DRY_RUN=${DRY_RUN:-0}"
+}
+
+run_apply_loop() {
+  local app_name="$1"
+  select_device
+  print_config "${app_name}"
+  pause_for "${START_DELAY}"
+
+  local index
+  for ((index = 1; index <= RUNS; index++)); do
+    echo "--- ${app_name} iteration ${index}/${RUNS} ---"
+    tap_at "job card" "${JOB_X}" "${JOB_Y}"
+    pause_for "${OPEN_DELAY}"
+    tap_at "communication button" "${BUTTON_X}" "${BUTTON_Y}"
+    pause_for "${POST_BUTTON_DELAY}"
+    tap_at "back 1" "${BACK_X}" "${BACK_Y}"
+    pause_for "${RETURN_DELAY}"
+    tap_at "back 2" "${BACK_X}" "${BACK_Y}"
+    pause_for "${RETURN_DELAY}"
+    swipe_list
+    pause_for "${DELAY}"
+  done
+}
