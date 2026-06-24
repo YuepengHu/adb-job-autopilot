@@ -158,8 +158,8 @@ run_apply_loop() {
     else
       swipe_list
     fi
-    emit_state "complete" "iteration ${index} complete"
+    emit_state "iteration_done" "iteration ${index} complete"
     pause_for "${DELAY}"
   done
-  emit_state "complete" "run complete"
+  emit_state "run_complete" "run complete"
 }

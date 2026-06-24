@@ -13,6 +13,7 @@ struct FlowSnapshot {
     var message = "Idle / 空闲"
     var running = false
     var failed = false
+    var events: [String] = []
 }
 
 final class FlowDiagramView: NSView {
@@ -22,7 +23,7 @@ final class FlowDiagramView: NSView {
     init(steps: [FlowStep], snapshot: FlowSnapshot) {
         self.steps = steps
         self.snapshot = snapshot
-        super.init(frame: NSRect(x: 0, y: 0, width: 700, height: 390))
+        super.init(frame: NSRect(x: 0, y: 0, width: 820, height: 500))
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -32,31 +33,144 @@ final class FlowDiagramView: NSView {
         NSColor.windowBackgroundColor.setFill()
         bounds.fill()
 
-        let currentIndex = steps.firstIndex { $0.key == snapshot.currentStep } ?? -1
-        drawText("\(displayAppName())  \(snapshot.iteration)/\(snapshot.total)  \(snapshot.message)", in: NSRect(x: 24, y: 18, width: bounds.width - 48, height: 24), size: 15, color: .labelColor, bold: true)
+        let currentIndex = stepIndex(snapshot.currentStep)
+        drawHeader()
 
-        let columns = 3
-        let boxWidth: CGFloat = 180
-        let boxHeight: CGFloat = 58
-        let xGap: CGFloat = 35
-        let yGap: CGFloat = 54
-        let startX: CGFloat = 24
-        let startY: CGFloat = 68
+        let rects = stepRects()
+        drawConnectors(rects)
+        drawLoopConnector(rects)
 
         for (index, step) in steps.enumerated() {
-            let rect = NSRect(
-                x: startX + CGFloat(index % columns) * (boxWidth + xGap),
-                y: startY + CGFloat(index / columns) * (boxHeight + yGap),
-                width: boxWidth,
-                height: boxHeight
-            )
+            guard let rect = rects[step.key] else { continue }
             colorForStep(index: index, currentIndex: currentIndex).setFill()
             NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8).fill()
             NSColor.separatorColor.setStroke()
             NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8).stroke()
             drawText("\(markerForStep(index: index, currentIndex: currentIndex)) \(step.title)", in: rect.insetBy(dx: 10, dy: 18), size: 13, color: .labelColor, bold: index == currentIndex)
-            drawArrowIfNeeded(index: index, rect: rect, xGap: xGap, columns: columns)
         }
+
+        drawRecentEvents()
+    }
+
+    private func drawHeader() {
+        let title = snapshot.total > 0 ? "\(displayAppName())  \(snapshot.iteration)/\(snapshot.total)" : displayAppName()
+        let stepTitle = titleForStep(snapshot.currentStep)
+        let detail = snapshot.failed ? "异常/停止：\(snapshot.message)" : "当前阶段：\(stepTitle) · \(snapshot.message)"
+        drawText(title, in: NSRect(x: 28, y: 18, width: bounds.width - 56, height: 24), size: 17, color: .labelColor, bold: true, alignment: .left)
+        drawText(detail, in: NSRect(x: 28, y: 44, width: bounds.width - 56, height: 22), size: 13, color: snapshot.failed ? .systemRed : .secondaryLabelColor, alignment: .left)
+    }
+
+    private func stepRects() -> [String: NSRect] {
+        let boxWidth: CGFloat = 190
+        let boxHeight: CGFloat = 58
+        let columnGap: CGFloat = 70
+        let rowGap: CGFloat = 44
+        let startX: CGFloat = 56
+        let startY: CGFloat = 92
+        let positions: [String: (Int, Int)] = [
+            "prepare": (0, 0),
+            "verify_list": (1, 0),
+            "open_job": (2, 0),
+            "return_list": (0, 1),
+            "communicate": (1, 1),
+            "detect_button": (2, 1),
+            "verify_return": (0, 2),
+            "scroll": (1, 2),
+            "run_complete": (2, 2)
+        ]
+
+        var rects: [String: NSRect] = [:]
+        for (key, position) in positions {
+            rects[key] = NSRect(
+                x: startX + CGFloat(position.0) * (boxWidth + columnGap),
+                y: startY + CGFloat(position.1) * (boxHeight + rowGap),
+                width: boxWidth,
+                height: boxHeight
+            )
+        }
+        return rects
+    }
+
+    private func drawConnectors(_ rects: [String: NSRect]) {
+        drawArrow(from: right(of: rects["prepare"]), to: left(of: rects["verify_list"]))
+        drawArrow(from: right(of: rects["verify_list"]), to: left(of: rects["open_job"]))
+        drawArrow(from: bottom(of: rects["open_job"]), to: top(of: rects["detect_button"]))
+        drawArrow(from: left(of: rects["detect_button"]), to: right(of: rects["communicate"]))
+        drawArrow(from: left(of: rects["communicate"]), to: right(of: rects["return_list"]))
+        drawArrow(from: bottom(of: rects["return_list"]), to: top(of: rects["verify_return"]))
+        drawArrow(from: right(of: rects["verify_return"]), to: left(of: rects["scroll"]))
+        drawArrow(from: right(of: rects["scroll"]), to: left(of: rects["run_complete"]))
+    }
+
+    private func drawLoopConnector(_ rects: [String: NSRect]) {
+        guard let scroll = rects["scroll"], let verify = rects["verify_list"] else { return }
+        let loopY = scroll.maxY + 22
+        let loopX: CGFloat = 24
+        let points = [
+            NSPoint(x: scroll.midX, y: scroll.maxY + 4),
+            NSPoint(x: scroll.midX, y: loopY),
+            NSPoint(x: loopX, y: loopY),
+            NSPoint(x: loopX, y: verify.midY),
+            NSPoint(x: verify.minX - 8, y: verify.midY)
+        ]
+        drawArrow(points: points, dashed: true, color: .tertiaryLabelColor)
+        drawText("下一个岗位 / next job", in: NSRect(x: loopX + 8, y: loopY - 18, width: 180, height: 18), size: 11, color: .secondaryLabelColor, alignment: .left)
+    }
+
+    private func right(of rect: NSRect?) -> NSPoint { NSPoint(x: rect?.maxX ?? 0, y: rect?.midY ?? 0) }
+    private func left(of rect: NSRect?) -> NSPoint { NSPoint(x: rect?.minX ?? 0, y: rect?.midY ?? 0) }
+    private func top(of rect: NSRect?) -> NSPoint { NSPoint(x: rect?.midX ?? 0, y: rect?.minY ?? 0) }
+    private func bottom(of rect: NSRect?) -> NSPoint { NSPoint(x: rect?.midX ?? 0, y: rect?.maxY ?? 0) }
+
+    private func drawArrow(from start: NSPoint, to end: NSPoint) {
+        drawArrow(points: [start, end], dashed: false, color: .secondaryLabelColor)
+    }
+
+    private func drawArrow(points: [NSPoint], dashed: Bool, color: NSColor) {
+        guard points.count >= 2 else { return }
+        let path = NSBezierPath()
+        path.move(to: points[0])
+        for point in points.dropFirst() { path.line(to: point) }
+        if dashed {
+            var pattern: [CGFloat] = [5, 4]
+            path.setLineDash(&pattern, count: pattern.count, phase: 0)
+        }
+        color.setStroke()
+        path.lineWidth = dashed ? 1.0 : 1.2
+        path.stroke()
+        drawArrowHead(from: points[points.count - 2], to: points[points.count - 1], color: color)
+    }
+
+    private func drawArrowHead(from start: NSPoint, to end: NSPoint, color: NSColor) {
+        let angle = atan2(end.y - start.y, end.x - start.x)
+        let length: CGFloat = 7
+        let spread: CGFloat = .pi / 6
+        let left = NSPoint(x: end.x - length * cos(angle - spread), y: end.y - length * sin(angle - spread))
+        let right = NSPoint(x: end.x - length * cos(angle + spread), y: end.y - length * sin(angle + spread))
+        let path = NSBezierPath()
+        path.move(to: left)
+        path.line(to: end)
+        path.line(to: right)
+        color.setStroke()
+        path.lineWidth = 1.2
+        path.stroke()
+    }
+
+    private func drawRecentEvents() {
+        let titleRect = NSRect(x: 28, y: 386, width: bounds.width - 56, height: 20)
+        drawText("最近状态 / Recent states", in: titleRect, size: 12, color: .secondaryLabelColor, bold: true, alignment: .left)
+        let events = snapshot.events.suffix(4)
+        if events.isEmpty {
+            drawText("等待脚本状态事件 / Waiting for script state events", in: NSRect(x: 28, y: 412, width: bounds.width - 56, height: 20), size: 12, color: .tertiaryLabelColor, alignment: .left)
+            return
+        }
+        for (offset, event) in events.enumerated() {
+            drawText(event, in: NSRect(x: 28, y: 412 + CGFloat(offset) * 20, width: bounds.width - 56, height: 18), size: 12, color: .secondaryLabelColor, alignment: .left)
+        }
+    }
+
+    private func stepIndex(_ key: String) -> Int {
+        steps.firstIndex { $0.key == key } ?? -1
     }
 
     private func displayAppName() -> String {
@@ -69,35 +183,29 @@ final class FlowDiagramView: NSView {
         if snapshot.failed { return index == max(currentIndex, 0) ? "!" : "○" }
         if currentIndex < 0 { return "○" }
         if index < currentIndex { return "✓" }
+        if snapshot.currentStep == "run_complete" && index == currentIndex { return "✓" }
         if index == currentIndex { return "▶" }
         return "○"
     }
 
     private func colorForStep(index: Int, currentIndex: Int) -> NSColor {
         if snapshot.failed && index == max(currentIndex, 0) { return NSColor.systemRed.withAlphaComponent(0.22) }
+        if snapshot.currentStep == "run_complete" && index <= currentIndex { return NSColor.systemGreen.withAlphaComponent(0.18) }
         if index == currentIndex { return NSColor.systemBlue.withAlphaComponent(0.20) }
         if currentIndex >= 0 && index < currentIndex { return NSColor.systemGreen.withAlphaComponent(0.18) }
         return NSColor.controlBackgroundColor
     }
 
-    private func drawArrowIfNeeded(index: Int, rect: NSRect, xGap: CGFloat, columns: Int) {
-        if index == steps.count - 1 || index % columns == columns - 1 { return }
-        let start = NSPoint(x: rect.maxX + 5, y: rect.midY)
-        let end = NSPoint(x: rect.maxX + xGap - 5, y: rect.midY)
-        let path = NSBezierPath()
-        path.move(to: start)
-        path.line(to: end)
-        path.move(to: NSPoint(x: end.x - 5, y: end.y - 4))
-        path.line(to: end)
-        path.line(to: NSPoint(x: end.x - 5, y: end.y + 4))
-        NSColor.secondaryLabelColor.setStroke()
-        path.lineWidth = 1.2
-        path.stroke()
+    private func titleForStep(_ key: String) -> String {
+        if let step = steps.first(where: { $0.key == key }) { return step.title }
+        if key == "iteration_done" { return "单轮完成" }
+        if key == "failed" { return "异常/停止" }
+        return "空闲"
     }
 
-    private func drawText(_ text: String, in rect: NSRect, size: CGFloat, color: NSColor, bold: Bool = false) {
+    private func drawText(_ text: String, in rect: NSRect, size: CGFloat, color: NSColor, bold: Bool = false, alignment: NSTextAlignment = .center) {
         let paragraph = NSMutableParagraphStyle()
-        paragraph.alignment = .center
+        paragraph.alignment = alignment
         paragraph.lineBreakMode = .byTruncatingTail
         let attributes: [NSAttributedString.Key: Any] = [
             .font: bold ? NSFont.boldSystemFont(ofSize: size) : NSFont.systemFont(ofSize: size),
@@ -121,7 +229,7 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
         FlowStep(key: "return_list", title: "返回列表"),
         FlowStep(key: "verify_return", title: "确认返回"),
         FlowStep(key: "scroll", title: "推进职位"),
-        FlowStep(key: "complete", title: "完成")
+        FlowStep(key: "run_complete", title: "运行完成")
     ]
     private var runCount: Int
     private var process: Process?
@@ -145,13 +253,17 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
         let menu = NSMenu()
         menu.delegate = self
 
+        menu.addItem(disabledItem(statusTitle()))
+        menu.addItem(disabledItem(snapshot.message))
+
+        let flowItem = NSMenuItem(title: "Open Flowchart / 打开图形流程图", action: #selector(showFlowPanel), keyEquivalent: "f")
+        flowItem.target = self
+        menu.addItem(flowItem)
+        menu.addItem(NSMenuItem.separator())
+
         let countRoot = NSMenuItem(title: "Run count: \(runCount) / 岗位数：\(runCount)", action: nil, keyEquivalent: "")
         countRoot.submenu = buildCountMenu()
         menu.addItem(countRoot)
-
-        let statusRoot = NSMenuItem(title: "Status / 当前流程", action: nil, keyEquivalent: "")
-        statusRoot.submenu = buildStatusMenu()
-        menu.addItem(statusRoot)
         menu.addItem(NSMenuItem.separator())
 
         addStartItem(menu, title: "Start BOSS (\(runCount)) / 启动 BOSS（\(runCount)）", key: "b", action: #selector(startBoss))
@@ -162,10 +274,6 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
         stopItem.isEnabled = process != nil
         menu.addItem(stopItem)
         menu.addItem(NSMenuItem.separator())
-
-        let panelItem = NSMenuItem(title: "Show Flow Panel / 显示流程面板", action: #selector(showFlowPanel), keyEquivalent: "f")
-        panelItem.target = self
-        menu.addItem(panelItem)
 
         let logsItem = NSMenuItem(title: "Open Logs / 打开日志", action: #selector(openLogs), keyEquivalent: "")
         logsItem.target = self
@@ -200,18 +308,6 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
         return countMenu
     }
 
-    private func buildStatusMenu() -> NSMenu {
-        let statusMenu = NSMenu()
-        statusMenu.addItem(disabledItem(statusTitle()))
-        statusMenu.addItem(disabledItem(snapshot.message))
-        statusMenu.addItem(NSMenuItem.separator())
-        let currentIndex = steps.firstIndex { $0.key == snapshot.currentStep } ?? -1
-        for (index, step) in steps.enumerated() {
-            statusMenu.addItem(disabledItem("\(markerForStep(index: index, currentIndex: currentIndex)) \(step.title)"))
-        }
-        return statusMenu
-    }
-
     private func disabledItem(_ title: String) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         item.isEnabled = false
@@ -220,15 +316,7 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
 
     private func statusTitle() -> String {
         if !snapshot.running && snapshot.iteration == 0 { return "Idle / 空闲" }
-        return "\(shortAppName(snapshot.appName))  \(snapshot.iteration)/\(snapshot.total)"
-    }
-
-    private func markerForStep(index: Int, currentIndex: Int) -> String {
-        if snapshot.failed { return index == max(currentIndex, 0) ? "!" : "○" }
-        if currentIndex < 0 { return "○" }
-        if index < currentIndex { return "✓" }
-        if index == currentIndex { return "▶" }
-        return "○"
+        return "\(shortAppName(snapshot.appName))  \(snapshot.iteration)/\(snapshot.total) · \(titleForStep(snapshot.currentStep))"
     }
 
     private func shortAppName(_ appName: String) -> String {
@@ -269,13 +357,16 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
         snapshot.running = false
         snapshot.failed = true
         snapshot.message = "Stopped by user / 用户停止"
+        appendEvent(step: "failed", message: snapshot.message)
         statusItem.button?.title = "投递"
         refreshUI()
     }
 
-    @objc private func showFlowPanel() {
+    @objc private func showFlowPanel() { presentFlowPanel(activate: true) }
+
+    private func presentFlowPanel(activate: Bool) {
         if flowPanel == nil {
-            let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 700, height: 390), styleMask: [.titled, .closable, .utilityWindow], backing: .buffered, defer: false)
+            let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 820, height: 500), styleMask: [.titled, .closable, .utilityWindow], backing: .buffered, defer: false)
             panel.title = "投递流程 / Apply Flow"
             panel.isReleasedWhenClosed = false
             let view = FlowDiagramView(steps: steps, snapshot: snapshot)
@@ -285,7 +376,7 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
         }
         flowPanel?.center()
         flowPanel?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        if activate { NSApp.activate(ignoringOtherApps: true) }
     }
 
     @objc private func openLogs() {
@@ -312,9 +403,11 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
             return
         }
 
-        snapshot = FlowSnapshot(appName: label, iteration: 0, total: runCount, currentStep: "prepare", message: "Starting / 启动中", running: true, failed: false)
+        snapshot = FlowSnapshot(appName: label, iteration: 0, total: runCount, currentStep: "prepare", message: "Starting / 启动中", running: true, failed: false, events: [])
+        appendEvent(step: "prepare", message: snapshot.message)
         outputBuffer = ""
         refreshUI()
+        presentFlowPanel(activate: true)
 
         var environment = ProcessInfo.processInfo.environment
         environment["RUNS"] = String(runCount)
@@ -345,8 +438,14 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
                 let success = finishedProcess.terminationStatus == 0
                 self.snapshot.running = false
                 self.snapshot.failed = !success
-                self.snapshot.currentStep = success ? "complete" : "failed"
-                self.snapshot.message = success ? "Run complete / 运行完成" : "Failed with exit \(finishedProcess.terminationStatus) / 异常退出"
+                if success {
+                    self.snapshot.currentStep = "run_complete"
+                    self.snapshot.message = "Run complete / 运行完成"
+                    self.appendEvent(step: "run_complete", message: self.snapshot.message)
+                } else {
+                    self.snapshot.message = "Failed with exit \(finishedProcess.terminationStatus) / 异常退出"
+                    self.appendEvent(step: "failed", message: self.snapshot.message)
+                }
                 self.statusItem.button?.title = success ? "投递" : "投递!"
                 self.refreshUI()
             }
@@ -363,6 +462,7 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
             snapshot.running = false
             snapshot.failed = true
             snapshot.message = "Could not start script / 无法启动脚本"
+            appendEvent(step: "failed", message: snapshot.message)
             statusItem.button?.title = "投递!"
             refreshUI()
         }
@@ -388,13 +488,37 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
         snapshot.message = String(parts[5])
         if step == "failed" {
             snapshot.failed = true
+        } else if step == "iteration_done" {
+            snapshot.failed = false
+        } else if step == "run_complete" {
+            snapshot.currentStep = step
+            snapshot.running = false
+            snapshot.failed = false
         } else {
             snapshot.currentStep = step
             snapshot.failed = false
         }
-        snapshot.running = process != nil
+        appendEvent(step: step, message: snapshot.message)
+        snapshot.running = process != nil || snapshot.running
         statusItem.button?.title = "\(shortAppName(snapshot.appName))... \(snapshot.iteration)/\(snapshot.total)"
         refreshUI()
+    }
+
+    private func appendEvent(step: String, message: String) {
+        let count = snapshot.total > 0 ? "\(snapshot.iteration)/\(snapshot.total)" : "--"
+        let entry = "\(count) \(titleForStep(step)): \(message)"
+        if snapshot.events.last == entry { return }
+        snapshot.events.append(entry)
+        if snapshot.events.count > 8 {
+            snapshot.events.removeFirst(snapshot.events.count - 8)
+        }
+    }
+
+    private func titleForStep(_ key: String) -> String {
+        if let step = steps.first(where: { $0.key == key }) { return step.title }
+        if key == "iteration_done" { return "单轮完成" }
+        if key == "failed" { return "异常/停止" }
+        return "空闲"
     }
 
     private func refreshUI() {
