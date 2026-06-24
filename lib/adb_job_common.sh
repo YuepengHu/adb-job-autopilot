@@ -76,12 +76,27 @@ print_config() {
   echo "RUNS=${RUNS} DELAY=${DELAY} OPEN_DELAY=${OPEN_DELAY} POST_BUTTON_DELAY=${POST_BUTTON_DELAY} RETURN_DELAY=${RETURN_DELAY}"
   echo "JOB=${JOB_X},${JOB_Y} BUTTON=${BUTTON_X},${BUTTON_Y} BACK=${BACK_X},${BACK_Y}"
   echo "SWIPE=${SWIPE_X},${SWIPE_START_Y}->${SWIPE_X},${SWIPE_END_Y} ${SWIPE_MS}ms"
-  echo "DRY_RUN=${DRY_RUN:-0}"
+  echo "DRY_RUN=${DRY_RUN:-0} WAKE_SCREEN=${WAKE_SCREEN} KEEP_AWAKE=${KEEP_AWAKE}"
+}
+
+prepare_screen() {
+  if [[ "${DRY_RUN:-0}" == "1" ]]; then
+    return
+  fi
+
+  if [[ "${WAKE_SCREEN}" == "1" ]]; then
+    adb_run shell input keyevent WAKEUP || true
+  fi
+
+  if [[ "${KEEP_AWAKE}" == "1" ]]; then
+    adb_run shell svc power stayon usb || true
+  fi
 }
 
 run_apply_loop() {
   local app_name="$1"
   select_device
+  prepare_screen
   print_config "${app_name}"
   pause_for "${START_DELAY}"
 

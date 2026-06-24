@@ -60,6 +60,8 @@ All coordinates and timings can be overridden with environment variables.
 | `OPEN_DELAY` | `2` | Wait after opening a job / 打开职位后的等待秒数 |
 | `POST_BUTTON_DELAY` | `2` | Wait after tapping communication / 点击沟通后的等待秒数 |
 | `RETURN_DELAY` | `1` | Wait between back taps / 返回点击之间的等待秒数 |
+| `WAKE_SCREEN` | `1` | Wake the screen before running / 运行前唤醒屏幕 |
+| `KEEP_AWAKE` | `1` | Keep screen awake while connected through USB / USB 连接时保持亮屏 |
 | `JOB_X`, `JOB_Y` | App-specific | First job card tap point / 第一个职位点击点 |
 | `BUTTON_X`, `BUTTON_Y` | App-specific | Communication button tap point / 沟通按钮点击点 |
 | `BACK_X`, `BACK_Y` | `70,220` | Top-left back tap point / 左上角返回点击点 |
@@ -91,7 +93,7 @@ These defaults target the connected `1260x2772` phone.
 | Script | Job tap | Communication tap | Back tap | Swipe |
 | --- | --- | --- | --- | --- |
 | `boss_apply.sh` | `630,690` | `1010,2585` | `70,220` | `630,1850 -> 630,1290` |
-| `liepin_apply.sh` | `630,720` | `990,2585` | `70,220` | `630,1850 -> 630,1290` |
+| `liepin_apply.sh` | `630,1190` | `820,2585` | `70,220` | `630,1850 -> 630,1290` |
 
 ## Notes / 注意
 
