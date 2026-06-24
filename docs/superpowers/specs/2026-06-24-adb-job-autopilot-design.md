@@ -8,7 +8,7 @@ Create ADB automation for the user's own Android phone, with script entry points
 
 - `boss_apply.sh`: for BOSS Zhipin / 用于 BOSS 直聘。
 - `liepin_apply.sh`: for Liepin / 用于猎聘。
-- `ADB Job Autopilot.app`: macOS menu bar launcher with separate BOSS and Liepin items / macOS 菜单栏启动器，包含 BOSS 和猎聘两个独立入口。
+- `ADB Job Autopilot.app`: macOS menu bar launcher with one menu item and BOSS/Liepin actions inside / macOS 菜单栏启动器，使用一个菜单栏入口，并在子菜单中区分 BOSS 和猎聘操作。
 
 Each script repeatedly opens the current target job card, taps the app-specific communication button, returns to the job list, and advances by exactly one job card when possible.
 
@@ -25,7 +25,7 @@ In scope for this version / 本版本包含：
 - One-job-at-a-time list advancement / 每次尽量只推进一个职位。
 - UI dump based button and page detection / 基于 UI dump 的按钮和页面识别。
 - OCR fallback for unexpected ad/error pages / 用于异常广告/报错页面的 OCR 兜底。
-- Native macOS menu bar launcher with two clickable items / 原生 macOS 菜单栏启动器，包含两个可点击入口。
+- Native macOS menu bar launcher with one configurable menu / 原生 macOS 菜单栏启动器，包含一个可配置菜单。
 
 Out of scope for this version / 本版本不包含：
 
@@ -76,15 +76,16 @@ OCR is not used for the normal happy path when UI dump can identify controls. Th
 
 ## Menu Bar Launcher / 菜单栏启动器
 
-The macOS menu bar launcher is a native Swift AppKit app. It creates two status bar items, `BOSS` and `猎聘`.
+The macOS menu bar launcher is a native Swift AppKit app. It creates one status bar item named `投递`, with menu actions for BOSS and Liepin.
 
-macOS 菜单栏启动器是原生 Swift AppKit 应用，会创建 `BOSS` 和 `猎聘` 两个状态栏入口。
+macOS 菜单栏启动器是原生 Swift AppKit 应用，会创建一个名为 `投递` 的状态栏入口，并在菜单中提供 BOSS 和猎聘操作。
 
-- Left click when idle starts the corresponding script / 空闲时左键点击会启动对应脚本。
-- Left click while running stops the corresponding script / 运行中左键点击会停止对应脚本。
-- The item title changes while running / 运行时状态栏标题会变化。
+- The menu can configure the run count before starting / 菜单中可以在启动前配置岗位数量。
+- The menu exposes `Start BOSS` and `Start Liepin` actions / 菜单提供启动 BOSS 和启动猎聘的操作。
+- The menu exposes stop, open logs, and quit actions / 菜单提供停止、打开日志和退出操作。
+- The item title changes while a script is running / 脚本运行时状态栏标题会变化。
 - Logs are written under `logs/` / 日志写入 `logs/`。
-- The default run count is configurable with `MENU_RUNS`, default `5` / 默认轮数可通过 `MENU_RUNS` 配置，默认 `5`。
+- The default run count is configurable with `MENU_RUNS`, default `5`, and can be changed from the menu / 默认轮数可通过 `MENU_RUNS` 配置，默认 `5`，也可以在菜单中修改。
 
 ## Configuration / 配置
 
@@ -128,4 +129,4 @@ Coordinate fallback remains available when UI detection fails.
 4. Start with BOSS on a job list page and execute `RUNS=1 ./boss_apply.sh` / 在 BOSS 职位列表页执行 `RUNS=1 ./boss_apply.sh`。
 5. Confirm one job was opened, communication was tapped, the app returned to the list, and the list advanced by one job / 确认脚本打开了一个职位、点击了沟通、返回列表并推进一个职位。
 6. Repeat with Liepin using `RUNS=1 ./liepin_apply.sh` / 在猎聘中用 `RUNS=1 ./liepin_apply.sh` 重复验证。
-7. Verify the menu bar app starts the BOSS and Liepin scripts with `DRY_RUN=1` before any real menu-triggered run / 在真实菜单栏运行前，先用 `DRY_RUN=1` 验证菜单栏 App 能启动 BOSS 和猎聘脚本。
+7. Verify the menu bar app opens one `投递` menu, can configure the run count, and can start BOSS/Liepin scripts / 验证菜单栏 App 只显示一个 `投递` 菜单，可以配置岗位数量，并能启动 BOSS/猎聘脚本。

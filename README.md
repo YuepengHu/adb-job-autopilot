@@ -51,14 +51,15 @@ cd ~/Yuepeng/github/adb-job-autopilot
 ./build_menubar_app.sh --open
 ```
 
-It creates two menu bar items: `BOSS` and `猎聘`.
+It creates one menu bar item: `投递`.
 
-它会创建两个顶部菜单栏入口：`BOSS` 和 `猎聘`。
+它会创建一个顶部菜单栏入口：`投递`。
 
-- Click `BOSS` to start `boss_apply.sh` / 点击 `BOSS` 启动 `boss_apply.sh`。
-- Click `猎聘` to start `liepin_apply.sh` / 点击 `猎聘` 启动 `liepin_apply.sh`。
-- Click the same item again while it is running to stop it / 运行中再次点击同一个入口可停止。
-- Right-click either item to quit the menu bar app / 右键任意入口可退出菜单栏 App。
+- Open `投递` and choose the run count / 打开 `投递` 并选择岗位数量。
+- Choose `Start BOSS` to start `boss_apply.sh` / 选择 `Start BOSS` 启动 `boss_apply.sh`。
+- Choose `Start Liepin` to start `liepin_apply.sh` / 选择 `Start Liepin` 启动 `liepin_apply.sh`。
+- Use `Stop Running Script` to stop a running script / 使用 `Stop Running Script` 停止正在运行的脚本。
+- Use `Quit` to quit the menu bar app / 使用 `Quit` 退出菜单栏 App。
 - Logs are written under `logs/` / 日志写入 `logs/`。
 
 The menu bar app uses `MENU_RUNS=5` by default.
