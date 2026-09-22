@@ -18,9 +18,18 @@ current_package() {
   '
 }
 
+UI_DUMP_CACHED=0
+
+invalidate_ui_cache() {
+  UI_DUMP_CACHED=0
+}
+
 dump_ui() {
-  adb_run shell uiautomator dump "${UI_DUMP_REMOTE}" >/dev/null 2>&1 || return 1
-  adb_run exec-out cat "${UI_DUMP_REMOTE}" >"${UI_DUMP_LOCAL}"
+  if [[ "${UI_DUMP_CACHED}" == "1" ]]; then
+    return 0
+  fi
+  adb_run shell "uiautomator dump ${UI_DUMP_REMOTE} >/dev/null 2>&1 && cat ${UI_DUMP_REMOTE}" >"${UI_DUMP_LOCAL}" 2>/dev/null || return 1
+  UI_DUMP_CACHED=1
 }
 
 xml_contains_regex() {
@@ -159,6 +168,7 @@ recover_unexpected_package() {
   for ((attempt = 1; attempt <= RECOVERY_BACKS; attempt++)); do
     echo "unexpected foreground package, pressing back (${attempt}/${RECOVERY_BACKS})"
     adb_run shell input keyevent BACK
+    invalidate_ui_cache
     pause_for "${RETURN_DELAY}"
     package="$(current_package)"
     [[ "${package}" == "${expected}" ]] && return 0
@@ -180,6 +190,7 @@ recover_interruption() {
   if [[ "${ocr_text}" =~ (广告|跳过|关闭|加载失败|网络异常|出错|重试) ]]; then
     echo "OCR detected interruption; pressing back once."
     adb_run shell input keyevent BACK
+    invalidate_ui_cache
     pause_for "${RETURN_DELAY}"
     return 0
   fi
@@ -208,6 +219,7 @@ tap_communication_button() {
   [[ "${DRY_RUN:-0}" == "1" ]] && return 1
   local attempt coords x y ocr_text
   for ((attempt = 1; attempt <= BUTTON_FIND_ATTEMPTS; attempt++)); do
+    invalidate_ui_cache
     dump_ui || true
     coords="$(find_text_node_center "${COMMUNICATION_SKIP_TEXT_REGEX}" "${BUTTON_MIN_Y}" | head -1)"
     if [[ -n "${coords}" ]]; then
@@ -245,6 +257,7 @@ smart_scroll_once() {
   echo "smart swipe: ${STEP_SWIPE_X},${STEP_SWIPE_START_Y} -> ${STEP_SWIPE_X},${STEP_SWIPE_END_Y} (${STEP_SWIPE_MS}ms)"
   if [[ "${DRY_RUN:-0}" != "1" ]]; then
     adb_run shell input swipe "${STEP_SWIPE_X}" "${STEP_SWIPE_START_Y}" "${STEP_SWIPE_X}" "${STEP_SWIPE_END_Y}" "${STEP_SWIPE_MS}"
+    invalidate_ui_cache
   fi
 }
 

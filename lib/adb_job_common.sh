@@ -67,6 +67,7 @@ tap_at() {
   echo "tap ${label}: ${x},${y}"
   if [[ "${DRY_RUN:-0}" != "1" ]]; then
     adb_run shell input tap "${x}" "${y}"
+    declare -F invalidate_ui_cache >/dev/null && invalidate_ui_cache
   fi
 }
 
@@ -74,6 +75,7 @@ swipe_list() {
   echo "swipe list: ${SWIPE_X},${SWIPE_START_Y} -> ${SWIPE_X},${SWIPE_END_Y} (${SWIPE_MS}ms)"
   if [[ "${DRY_RUN:-0}" != "1" ]]; then
     adb_run shell input swipe "${SWIPE_X}" "${SWIPE_START_Y}" "${SWIPE_X}" "${SWIPE_END_Y}" "${SWIPE_MS}"
+    declare -F invalidate_ui_cache >/dev/null && invalidate_ui_cache
   fi
 }
 
@@ -121,7 +123,6 @@ run_apply_loop() {
   for ((index = 1; index <= RUNS; index++)); do
     CURRENT_ITERATION="${index}"
     echo "--- ${app_name} iteration ${index}/${RUNS} ---"
-    COMMUNICATION_RESULT=""
     emit_state "verify_list" "verify list page"
     guard_page || { emit_state "failed" "page guard failed"; exit 1; }
     emit_state "open_job" "open visible job"
@@ -131,22 +132,11 @@ run_apply_loop() {
       tap_at "job card" "${JOB_X}" "${JOB_Y}"
     fi
     pause_for "${OPEN_DELAY}"
-    emit_state "detect_button" "find communication button"
-    if [[ "${SMART_TAP}" == "1" ]] && declare -F tap_communication_button >/dev/null && tap_communication_button; then
-      :
-    else
-      tap_at "communication button" "${BUTTON_X}" "${BUTTON_Y}"
-      COMMUNICATION_RESULT="tapped"
-    fi
+    emit_state "detect_button" "tap communication button"
+    tap_at "communication button" "${BUTTON_X}" "${BUTTON_Y}"
+    emit_state "communicate" "communication tapped"
+    pause_for "${POST_BUTTON_DELAY}"
     local return_backs=2
-    if [[ "${COMMUNICATION_RESULT}" == "already_connected" ]]; then
-      emit_state "communicate" "already connected, skip"
-      return_backs=1
-      pause_for "${RETURN_DELAY}"
-    else
-      emit_state "communicate" "communication tapped"
-      pause_for "${POST_BUTTON_DELAY}"
-    fi
     emit_state "return_list" "back to list"
     local back_index
     for ((back_index = 1; back_index <= return_backs; back_index++)); do
