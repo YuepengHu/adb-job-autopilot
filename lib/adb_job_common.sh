@@ -38,18 +38,43 @@ select_device() {
     return
   fi
 
-  local device_count
-  device_count="$(adb devices | awk 'NR > 1 && $2 == "device" { count++ } END { print count + 0 }')"
-  if [[ "${device_count}" != "1" ]]; then
-    echo "Expected exactly one authorized adb device, found ${device_count}." >&2
+  # Wireless adb (adb connect / Android 11+ pairing) reports its serial as host:port; prefer it over USB.
+  emit_state "check_adb" "checking wireless adb"
+  local wireless_count
+  wireless_count="$(adb devices | awk 'NR > 1 && $2 == "device" && $1 ~ /:[0-9]+$/ { count++ } END { print count + 0 }')"
+  if [[ "${wireless_count}" == "1" ]]; then
+    local wireless_serial
+    wireless_serial="$(adb devices | awk 'NR > 1 && $2 == "device" && $1 ~ /:[0-9]+$/ { print $1; exit }')"
+    ADB_ARGS=(-s "${wireless_serial}")
+    emit_state "check_adb" "wireless adb connected: ${wireless_serial}"
+    return
+  elif [[ "${wireless_count}" != "0" ]]; then
+    echo "Expected exactly one authorized wireless adb device, found ${wireless_count}." >&2
     adb devices -l >&2
-    echo "Set ADB_SERIAL=<serial> if multiple devices are connected." >&2
+    echo "Set ADB_SERIAL=<serial> to pick one." >&2
     exit 1
   fi
 
-  local serial
-  serial="$(adb devices | awk 'NR > 1 && $2 == "device" { print $1; exit }')"
-  ADB_ARGS=(-s "${serial}")
+  emit_state "check_adb" "no wireless adb, checking wired adb"
+  local wired_count
+  wired_count="$(adb devices | awk 'NR > 1 && $2 == "device" && $1 !~ /:[0-9]+$/ { count++ } END { print count + 0 }')"
+  if [[ "${wired_count}" == "1" ]]; then
+    local wired_serial
+    wired_serial="$(adb devices | awk 'NR > 1 && $2 == "device" && $1 !~ /:[0-9]+$/ { print $1; exit }')"
+    ADB_ARGS=(-s "${wired_serial}")
+    emit_state "check_adb" "wired adb connected: ${wired_serial}"
+    return
+  elif [[ "${wired_count}" != "0" ]]; then
+    echo "Expected exactly one authorized wired adb device, found ${wired_count}." >&2
+    adb devices -l >&2
+    echo "Set ADB_SERIAL=<serial> to pick one." >&2
+    exit 1
+  fi
+
+  emit_state "failed" "no wireless or wired adb device found"
+  echo "No authorized adb device found (checked wireless then wired)." >&2
+  adb devices -l >&2
+  exit 1
 }
 
 adb_run() {
@@ -113,8 +138,8 @@ prepare_screen() {
 run_apply_loop() {
   local app_name="$1"
   STATE_APP_NAME="${app_name}"
-  emit_state "prepare" "select device"
   select_device
+  emit_state "prepare" "select device"
   prepare_screen
   print_config "${app_name}"
   pause_for "${START_DELAY}"

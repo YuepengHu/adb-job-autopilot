@@ -23,7 +23,7 @@ final class FlowDiagramView: NSView {
     init(steps: [FlowStep], snapshot: FlowSnapshot) {
         self.steps = steps
         self.snapshot = snapshot
-        super.init(frame: NSRect(x: 0, y: 0, width: 820, height: 500))
+        super.init(frame: NSRect(x: 0, y: 0, width: 820, height: 620))
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -68,15 +68,16 @@ final class FlowDiagramView: NSView {
         let startX: CGFloat = 56
         let startY: CGFloat = 92
         let positions: [String: (Int, Int)] = [
-            "prepare": (0, 0),
-            "verify_list": (1, 0),
-            "open_job": (2, 0),
-            "return_list": (0, 1),
-            "communicate": (1, 1),
-            "detect_button": (2, 1),
-            "verify_return": (0, 2),
-            "scroll": (1, 2),
-            "run_complete": (2, 2)
+            "check_adb": (0, 0),
+            "prepare": (0, 1),
+            "verify_list": (1, 1),
+            "open_job": (2, 1),
+            "return_list": (0, 2),
+            "communicate": (1, 2),
+            "detect_button": (2, 2),
+            "verify_return": (0, 3),
+            "scroll": (1, 3),
+            "run_complete": (2, 3)
         ]
 
         var rects: [String: NSRect] = [:]
@@ -92,6 +93,7 @@ final class FlowDiagramView: NSView {
     }
 
     private func drawConnectors(_ rects: [String: NSRect]) {
+        drawArrow(from: bottom(of: rects["check_adb"]), to: top(of: rects["prepare"]))
         drawArrow(from: right(of: rects["prepare"]), to: left(of: rects["verify_list"]))
         drawArrow(from: right(of: rects["verify_list"]), to: left(of: rects["open_job"]))
         drawArrow(from: bottom(of: rects["open_job"]), to: top(of: rects["detect_button"]))
@@ -157,15 +159,15 @@ final class FlowDiagramView: NSView {
     }
 
     private func drawRecentEvents() {
-        let titleRect = NSRect(x: 28, y: 386, width: bounds.width - 56, height: 20)
+        let titleRect = NSRect(x: 28, y: 488, width: bounds.width - 56, height: 20)
         drawText("最近状态 / Recent states", in: titleRect, size: 12, color: .secondaryLabelColor, bold: true, alignment: .left)
         let events = snapshot.events.suffix(4)
         if events.isEmpty {
-            drawText("等待脚本状态事件 / Waiting for script state events", in: NSRect(x: 28, y: 412, width: bounds.width - 56, height: 20), size: 12, color: .tertiaryLabelColor, alignment: .left)
+            drawText("等待脚本状态事件 / Waiting for script state events", in: NSRect(x: 28, y: 514, width: bounds.width - 56, height: 20), size: 12, color: .tertiaryLabelColor, alignment: .left)
             return
         }
         for (offset, event) in events.enumerated() {
-            drawText(event, in: NSRect(x: 28, y: 412 + CGFloat(offset) * 20, width: bounds.width - 56, height: 18), size: 12, color: .secondaryLabelColor, alignment: .left)
+            drawText(event, in: NSRect(x: 28, y: 514 + CGFloat(offset) * 20, width: bounds.width - 56, height: 18), size: 12, color: .secondaryLabelColor, alignment: .left)
         }
     }
 
@@ -221,6 +223,7 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let runCountOptions = [1, 3, 5, 10, 20]
     private let steps = [
+        FlowStep(key: "check_adb", title: "检测ADB连接"),
         FlowStep(key: "prepare", title: "准备设备"),
         FlowStep(key: "verify_list", title: "校验列表"),
         FlowStep(key: "open_job", title: "打开职位"),
@@ -366,7 +369,7 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
 
     private func presentFlowPanel(activate: Bool) {
         if flowPanel == nil {
-            let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 820, height: 500), styleMask: [.titled, .closable, .utilityWindow], backing: .buffered, defer: false)
+            let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 820, height: 620), styleMask: [.titled, .closable, .utilityWindow], backing: .buffered, defer: false)
             panel.title = "投递流程 / Apply Flow"
             panel.isReleasedWhenClosed = false
             let view = FlowDiagramView(steps: steps, snapshot: snapshot)
@@ -403,8 +406,8 @@ final class JobAutopilotMenu: NSObject, NSMenuDelegate {
             return
         }
 
-        snapshot = FlowSnapshot(appName: label, iteration: 0, total: runCount, currentStep: "prepare", message: "Starting / 启动中", running: true, failed: false, events: [])
-        appendEvent(step: "prepare", message: snapshot.message)
+        snapshot = FlowSnapshot(appName: label, iteration: 0, total: runCount, currentStep: "check_adb", message: "Starting / 启动中", running: true, failed: false, events: [])
+        appendEvent(step: "check_adb", message: snapshot.message)
         outputBuffer = ""
         refreshUI()
         presentFlowPanel(activate: true)
